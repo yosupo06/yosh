@@ -13,7 +13,7 @@ int main(string argv[]) {
 	while (true) {
 		auto r = readS(re);
 		if (r is null) break;
-
+		writeln("exec: ", r);
 		writeln(execS(r, env));
 
 	}

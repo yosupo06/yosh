@@ -28,9 +28,11 @@ class STree {
 		}
 		string n; // base lambda
 		struct { // enviroment
-			string name; // name
-			STree d; // data
-			STree next; // next
+			STree[string] mp; //map
+			STree next; //next
+//			string name; // name
+//			STree d; // data
+//			STree next; // next
 		}
 	}
 
@@ -63,23 +65,34 @@ class STree {
 		s.l = l; s.r = r;
 		return s;
 	}
+	static STree makeL(STree e, STree p) {
+		auto s = new STree();
+		s.type = SType.L;
+		s.e = e; s.p = p;
+		return s;
+	}
 	static STree makeBL(string st) {
 		auto s = new STree();
 		s.type = SType.BL;
 		s.n = st;
 		return s;
 	}
-	static STree makeE(string st, STree d, STree n) {
+	static STree makeE(STree next) {
 		auto s = new STree();
 		s.type = SType.E;
-		s.name = st;
-		s.d = d;
-		s.next = n;
+		s.next = next;
 		return s;
+	}
+	void add(string s, STree d) {
+		assert(type == SType.E);
+		mp[s] = d;
 	}
 	STree check(string s) {
 		assert(type == SType.E);
-		if (s == name) return d;
+		if (get(mp, s, null)) {
+			return mp[s];
+		}
+//		if (s == name) return d;
 		assert(next);
 		return next.check(s);
 	}
@@ -92,7 +105,11 @@ class STree {
 			sink(to!string(num));
 			break;
 		case SType.B:
-			sink("Bool");
+			if (b) {
+				sink("#t");
+			} else {
+				sink("#f");
+			}
 			break;
 		case SType.S:
 			sink(s);
@@ -100,8 +117,10 @@ class STree {
 		case SType.P:
 			sink("(");
 			sink(to!string(l));
-			sink(" . ");
-			sink(to!string(r));
+			if (r.type != SType.Null) {
+				sink(" . ");
+				sink(to!string(r));
+			}
 			sink(")");
 			break;
 		case SType.L:

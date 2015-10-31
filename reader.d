@@ -81,7 +81,6 @@ STree readP(Reader f) {
 
 	f.popW;
 	char c = f.now;
-
 	if (c == '.') {
 		f.pop;
 		STree r = readS(f);
@@ -117,6 +116,7 @@ STree readS(Reader f) {
 
 		c = f.now;
 		if (c == ')') {
+			f.pop;
 			return STree.makeNull;
 		}
 		STree l = readS(f);
