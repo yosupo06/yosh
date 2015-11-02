@@ -125,6 +125,8 @@ STree readS(Reader f) {
 		if (c == '.') {
 			f.pop;
 			STree r = readS(f);
+			assert(f.now == ')');
+			f.pop;
 			return STree.makeP(l, r);
 		} else if (c == ')') {
 			f.pop;
