@@ -13,4 +13,4 @@ dmd yosh.d reader.d base.d exec.d
 
 # 機能
 
-+/define
++/-/</eq/define/lambda
