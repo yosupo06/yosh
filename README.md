@@ -13,4 +13,4 @@ dmd yosh.d reader.d base.d exec.d
 
 # 機能
 
-+/-/</eq/define/lambda
++/-/=/</define/lambda/display/newline/quote

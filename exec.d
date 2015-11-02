@@ -43,7 +43,7 @@ STree[] listArgE(STree arg, int n, bool last, STree env) { // (1,2,..n . last) �
 		return r;
 	} else {
 		enforce(arg.type == SType.P, "引数が少なすぎる");
-		return arg.l.execS(env) ~ listArgNE(arg.r, n-1, last);
+		return arg.l.execS(env) ~ listArgE(arg.r, n-1, last, env);
 	}
 }
 
