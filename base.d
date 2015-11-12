@@ -1,6 +1,6 @@
 import std.format;
 import std.conv;
-
+import std.exception;
 
 enum SType {
 	Null, // null
@@ -87,13 +87,23 @@ class STree {
 		assert(type == SType.E);
 		mp[s] = d;
 	}
+	void set(string s, STree d) {
+		import std.stdio;
+		assert(type == SType.E);
+		if (get(mp, s, null)) {
+			mp[s] = d;
+			return;
+		}
+		enforce(next, s ~ " は未定義");
+		next.set(s, d);
+	}
 	STree check(string s) {
 		assert(type == SType.E);
 		if (get(mp, s, null)) {
 			return mp[s];
 		}
 //		if (s == name) return d;
-		assert(next);
+		enforce(next, s ~ " は未定義");
 		return next.check(s);
 	}
 	void toString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) const {

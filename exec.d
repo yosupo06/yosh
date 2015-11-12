@@ -27,10 +27,14 @@ STree execL(STree s, STree arg, STree env) {
 	assert(s.type == SType.L);
 	assert(s.p.type == SType.P);
 	assert(s.p.r.type == SType.P);
-	assert(s.p.r.r.type == SType.Null);
+//	assert(s.p.r.r.type == SType.Null);
 	STree fenv = STree.makeE(s.e);
 	extArg(s.p.l, arg, fenv, env);
-	return execS(s.p.r.l, fenv);
+	STree[] l = listArgNE(s.p.r, 1, true);
+	foreach (d; l[0..$-1]) {
+		execS(d, fenv);
+	}
+	return execS(l[$-1], fenv);
 }
 
 STree firstenv() {

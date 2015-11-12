@@ -3,9 +3,9 @@ import base, reader, exec;
 
 string[] blList = [
 	"+", "-", "=", "<",
-	"if", "define", "lambda", "quote",
+	"if", "define", "lambda", "quote", "set!",
 	"read", "newline", "display",
-	"cons", "car", "cdr",
+	"cons", "car", "cdr", "null?",
 ];
 
 STree[] listArgNE(STree arg, int n, bool last) { // (1,2,..n . last) 全て未評価で返す
@@ -54,6 +54,10 @@ STree execBL(STree s, STree arg, STree env) {
 		enforce(l[0].type == SType.S, "defineの第1引数はシンボル");
 		env.add(l[0].s, execS(l[1], env));
 		return l[0];
+	case "set!":
+		auto l = listArgNE(arg, 2, false);
+		enforce(l[0].type == SType.S, "set!の第1引数はシンボル");
+		env.set(l[0].s, execS(l[1], env));
 	case "lambda":
 		return STree.makeL(env, arg);
 	case "if":
@@ -89,6 +93,9 @@ STree execBL(STree s, STree arg, STree env) {
 		auto l = listArgE(arg, 1, false, env);
 		enforce(l[0].type == SType.P, "cdrの引数はpair");
 		return l[0].r;
+	case "null?":
+		auto l = listArgE(arg, 1, false, env);
+		return STree.makeB(l[0].type == SType.Null);
 	case "+":
 		auto l = listArgE(arg, 0, true, env);
 		int sm = 0;
