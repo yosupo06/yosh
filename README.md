@@ -11,6 +11,8 @@ dmd yosh.d reader.d base.d exec.d
 
 
 
-# 機能
-
-+/-/=/</define/lambda/display/newline/quote
+# 使える基本手続き
++/-/=/<
+if/define/lambda/quote/set!
+read/newline/display
+cons/car/cdr/null?
