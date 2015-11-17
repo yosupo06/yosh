@@ -1,145 +1,145 @@
-import std.exception;
-import std.stdio;
+import std.exception : enforce;
 import base;
 
-class Reader {
+class ReaderBase {
+	import std.stdio : File;
 	File f;
-	char now;
-	this(File ff) {
-		f = ff;
+	bool isR;
+	char nowB;
+	this(File f) {
+		this.f = f;
+		isR = false;
+	}
+	char read() {
 		auto po = f.tell;
-		f.readf("%c", &now);
+		f.readf("%c", &nowB);
 		if (f.tell == po) {
-			now = '\0';
+			nowB = '\0';
 		}
+		return nowB;
+	}
+	char now() {
+		if (isR) return nowB;
+		char c = read();
+		isR = true;
+		return c;
 	}
 	char pop() {
-		char res = now;
-		auto po = f.tell;
-		f.readf("%c", &now);
-		if (f.tell == po) {
-			now = '\0';
+		if (isR) {
+			isR = false;
+			return nowB;
 		}
-		return res;
+		return read();
 	}
-	char popW() { // pop white
-		import std.ascii;
-		char res;
+}
+
+class Reader {
+	ReaderBase f;
+	bool isR;
+	string nowB;
+	this(ReaderBase f) {
+		this.f = f;
+		isR = false;
+	}
+	string read() {
+		import std.ascii : isWhite;
+		while (f.now != '\0' && isWhite(f.now)) {
+			import std.stdio : writeln;
+			f.pop;
+		}
+		nowB = "" ~ f.pop;
+		if (nowB == "\0") {
+			return nowB;
+		}
+		if (nowB == "(") {
+			if (f.now == ')') {
+				nowB ~= f.pop; // f.pop == ')'
+			}
+			return nowB;
+		}
+		if (nowB == ")" || nowB == "'") {
+			return nowB;
+		}
 		while (true) {
-			res = now;
-			if (res == '\0' || !isWhite(res)) break;
-			pop();
+			char n = f.now;
+			if (n == '(' || n == ')' || n == '\0' || isWhite(n)) break;
+			nowB ~= f.pop;
 		}
-		return res;
+		return nowB;
+	}
+	string nowW() {
+		if (isR) return nowB;
+		string s = read();
+		isR = true;
+		return s;
+	}
+	string popW() {
+		if (isR) {
+			isR = false;
+			return nowB;
+		}
+		return read();
 	}
 }
 
-bool isStrFirst(char c) {
-	import std.ascii;
-	if (c == '\0') return false;
-	if (isWhite(c)) return false;
-	if (c == '#') return false;
-	if (c == '.') return false;
-	if (c == '(') return false;
-	if (c == ')') return false;
-	if (isDigit(c))	return false;
+
+bool isSymbol(string s) {
+	import std.ascii : letters, digits;
+	import std.string : indexOf;
+	if (s.length == 0) return false;
+	if (s == "+" || s == "-") return true;
+	immutable string fi = letters ~ "!$%&*/:<=>?^_~";
+	immutable string ba = fi ~ digits ~ "+-.@";
+	if (fi.indexOf(s[0]) == -1) return false;
+	foreach (char c; s[1..$]) {
+		if (ba.indexOf(c) == -1) return false;
+	}
 	return true;
-}
-bool isStrChar(char c) {
-	import std.ascii;
-	if (c == '\0') return false;
-	if (isWhite(c)) return false;
-	if (c == '#') return false;
-	if (c == '.') return false;
-	if (c == '(') return false;
-	if (c == ')') return false;
-	return true;
-}
-
-int readN(Reader f) {
-	import std.ascii;
-	int s = 0;
-	while (isDigit(f.now)) {
-		s *= 10;
-		s += f.pop - '0';
-	}
-	return s;
-}
-
-string readA(Reader f) {
-	import std.ascii;
-	string s = "" ~ f.pop;
-	while (isStrChar(f.now)) {
-		s ~= f.pop;
-	}
-	return s;
-}
-
-STree readP(Reader f) {
-	import std.ascii;
-	auto l = readS(f);
-
-	f.popW;
-	char c = f.now;
-	if (c == '.') {
-		f.pop;
-		STree r = readS(f);
-		return STree.makeP(l, r);
-	} else if (c == ')') {
-		return STree.makeP(l, STree.makeNull);
-	} else {
-		return STree.makeP(l, readP(f));
-	}
 }
 
 STree readS(Reader f) {
-	import std.ascii;
-
-	f.popW;
-	char c = f.now;
-
-	if (isDigit(c)) {
-		return STree.makeN(readN(f));
-	} else if (c == '#') {
-		f.pop;
-		c = f.pop;
-		if (c == 't') {
-			return STree.makeB(true);
-		} else if (c == 'f') {
-			return STree.makeB(false);
+	import std.ascii : isDigit;
+	import std.conv : to;
+	string s = f.popW;
+	if (s == "()") return new SNull();
+	if (s == "'") {
+		return new SPair(new SSymbol("quote"), new SPair(readS(f), new SNull));
+	}
+	if (isDigit(s[0])) {
+		return new SNum(to!int(s));
+	}
+	if (s[0] == '#') {
+		enforce(s.length == 2, s ~ " は不正な単語");
+		enforce(s[1] == 't' || s[1] == 'f', s ~ " は不正な単語");
+		if (s[1] == 't') {
+			return new SBool(true);
 		} else {
-			assert(false);
+			return new SBool(false);
 		}
-	} else if (c == '(') {
-		f.pop;
-		f.popW;
-
-		c = f.now;
-		if (c == ')') {
-			f.pop;
-			return STree.makeNull;
+	}
+	if (s == "(") {
+		SPair fp = new SPair(readS(f), new SNull());
+		SPair p = fp;
+		while (true) {
+			if (f.nowW == ".") {
+				f.popW;
+				p.r = readS(f);
+				enforce(f.nowW == ")", "とじカッコがない");
+				f.popW;
+				break;
+			}
+			if (f.nowW == ")") {
+				f.popW;
+				break;
+			}
+			SPair np = new SPair(readS(f), new SNull());
+			p.r = np;
+			p = np;
 		}
-		STree l = readS(f);
-		f.popW;
-		c = f.now;
-		if (c == '.') {
-			f.pop;
-			STree r = readS(f);
-			assert(f.now == ')');
-			f.pop;
-			return STree.makeP(l, r);
-		} else if (c == ')') {
-			f.pop;
-			return STree.makeP(l, STree.makeNull);
-		} else {
-			STree r = readP(f);
-			f.popW;
-			assert(f.now == ')');
-			f.pop;
-			return STree.makeP(l, r);
-		}
-	} else if (isStrFirst(c)) {
-		return STree.makeS(readA(f));
+		return fp;
+	}
+	if (isSymbol(s)) {
+		return new SSymbol(s);
 	}
 	return null;
 }

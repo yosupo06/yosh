@@ -1,95 +1,96 @@
-import std.format;
-import std.conv;
-import std.exception;
-
-enum SType {
-	Null, // null
-	N, // number 
-	B, // bool
-	S, // symbol
-	P, // pair
-	L, // lambda
-	BL, // base lambda
-	E, // enviroment
+class STree {
 }
 
-class STree {
-	SType type;
-	union {
-		int num; // number
-		bool b; // boolean
-		string s; // symbol
-		struct { // pair
-			STree l, r;
+class SNum : STree {
+	int num;
+	this(int num) {
+		this.num = num;
+	}
+	override string toString() {
+		import std.conv : to;
+		return to!string(num);
+	}
+}
+
+class SBool : STree {
+	bool b;
+	this(bool b) {
+		this.b = b;
+	}
+	override string toString() {
+		if (b == false) {
+			return "#f";
+		} else {
+			return "#t";
 		}
-		struct { // lambda
-			STree e; // enviroment
-			STree p; // program
+	}
+}
+
+class SSymbol : STree {
+	string s;
+	this(string s) {
+		this.s = s;
+	}
+	override string toString() {
+		return s;
+	}
+}
+
+class SPair : STree {
+	STree l, r;
+	this(STree l, STree r) {
+		this.l = l;
+		this.r = r;
+	}
+	override string toString() {
+		string re = "(" ~ l.toString;
+		SPair p = this;
+		while (typeid(p.r) == typeid(SPair)) {
+			p = cast(SPair)p.r;
+			re ~= " " ~ p.l.toString;
 		}
-		string n; // base lambda
-		struct { // enviroment
-			STree[string] mp; //map
-			STree next; //next
-//			string name; // name
-//			STree d; // data
-//			STree next; // next
+		if (typeid(p.r) != typeid(SNull)) {
+			re ~= " . " ~ p.r.toString;
 		}
+		re ~= ")";
+		return re;
+//		return "(" ~ l.toString ~ ", " ~ r.toString ~ ")";
+	}
+}
+
+class SLambda : STree {
+	SEnv e; //env
+	SPair p; //program(arg program)
+	this (SEnv e, SPair p) {
+		this.e = e;
+		this.p = p;
+	}
+	override string toString() {
+		return "Lambda";
+	}
+}
+
+class SBLambda : STree {
+	string s;
+	this(string s) {
+		this.s = s;
+	}
+	override string toString() {
+		return "BaseLambda";
+	}
+}
+class SEnv : STree {
+	import std.exception : enforce;
+	STree[string] mp;
+	SEnv next;
+	this(SEnv next) {
+		this.next = next;
 	}
 
-	static STree makeNull() {
-		auto s = new STree();
-		s.type = SType.Null;
-		return s;
-	}
-	static STree makeN(int n) {
-		auto s = new STree();
-		s.type = SType.N;
-		s.num = n;
-		return s;
-	}
-	static STree makeS(string st) {
-		auto s = new STree();
-		s.type = SType.S;
-		s.s = st;
-		return s;
-	}
-	static STree makeB(bool b) {
-		auto s = new STree();
-		s.type = SType.B;
-		s.b = b;
-		return s;
-	}
-	static STree makeP(STree l, STree r) {
-		auto s = new STree();
-		s.type = SType.P;
-		s.l = l; s.r = r;
-		return s;
-	}
-	static STree makeL(STree e, STree p) {
-		auto s = new STree();
-		s.type = SType.L;
-		s.e = e; s.p = p;
-		return s;
-	}
-	static STree makeBL(string st) {
-		auto s = new STree();
-		s.type = SType.BL;
-		s.n = st;
-		return s;
-	}
-	static STree makeE(STree next) {
-		auto s = new STree();
-		s.type = SType.E;
-		s.next = next;
-		return s;
-	}
 	void add(string s, STree d) {
-		assert(type == SType.E);
 		mp[s] = d;
 	}
 	void set(string s, STree d) {
-		import std.stdio;
-		assert(type == SType.E);
 		if (get(mp, s, null)) {
 			mp[s] = d;
 			return;
@@ -97,50 +98,25 @@ class STree {
 		enforce(next, s ~ " は未定義");
 		next.set(s, d);
 	}
-	STree check(string s) {
-		assert(type == SType.E);
+	STree at(string s) {
 		if (get(mp, s, null)) {
 			return mp[s];
 		}
-//		if (s == name) return d;
 		enforce(next, s ~ " は未定義");
-		return next.check(s);
+		return next.at(s);
 	}
-	void toString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) const {
-		final switch(type) {
-		case SType.Null:
-			sink("()");
-			break;
-		case SType.N:
-			sink(to!string(num));
-			break;
-		case SType.B:
-			if (b) {
-				sink("#t");
-			} else {
-				sink("#f");
-			}
-			break;
-		case SType.S:
-			sink(s);
-			break;
-		case SType.P:
-			sink("(");
-			sink(to!string(l));
-			if (r.type != SType.Null) {
-				sink(" . ");
-				sink(to!string(r));
-			}
-			sink(")");
-			break;
-		case SType.L:
-			sink("Lambda");
-			break;
-		case SType.BL:
-			sink("BaseLambda");
-			break;
-		case SType.E:
-			sink("Enviroment");
-    	}
-    }
+}
+
+class SNull : STree {
+	override string toString() {
+		return "'()";
+	}
+}
+
+unittest {
+	import std.stdio : writeln;
+	STree s = new STree();
+	SNum n = new SNum();
+	STree ss = n;
+	writeln(s, " ", n, " ", ss);
 }
