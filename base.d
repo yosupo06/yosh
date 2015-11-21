@@ -1,9 +1,27 @@
+enum SType {
+	Null,
+	Symbol,
+	Pair,
+	Syntax,
+	Lambda,
+	BLambda,
+	Env,
+	Bool,
+	Num,
+}
+
+
 class STree {
+	const SType type;
+	this(SType t) {
+		type = t;
+	}
 }
 
 class SNum : STree {
 	int num;
 	this(int num) {
+		super(SType.Num);
 		this.num = num;
 	}
 	override string toString() {
@@ -15,6 +33,7 @@ class SNum : STree {
 class SBool : STree {
 	bool b;
 	this(bool b) {
+		super(SType.Bool);
 		this.b = b;
 	}
 	override string toString() {
@@ -29,6 +48,7 @@ class SBool : STree {
 class SSymbol : STree {
 	string s;
 	this(string s) {
+		super(SType.Symbol);
 		this.s = s;
 	}
 	override string toString() {
@@ -39,10 +59,12 @@ class SSymbol : STree {
 class SPair : STree {
 	STree l, r;
 	this(STree l, STree r) {
+		super(SType.Pair);
 		this.l = l;
 		this.r = r;
 	}
 	override string toString() {
+		import std.stdio;
 		string re = "(" ~ l.toString;
 		SPair p = this;
 		while (typeid(p.r) == typeid(SPair)) {
@@ -54,7 +76,17 @@ class SPair : STree {
 		}
 		re ~= ")";
 		return re;
-//		return "(" ~ l.toString ~ ", " ~ r.toString ~ ")";
+	}
+}
+
+class SSyntax : STree {
+	string s;
+	this(string s) {
+		super(SType.Syntax);
+		this.s = s;
+	}
+	override string toString() {
+		return "Syntax(" ~ s ~ ")";
 	}
 }
 
@@ -62,6 +94,7 @@ class SLambda : STree {
 	SEnv e; //env
 	SPair p; //program(arg program)
 	this (SEnv e, SPair p) {
+		super(SType.Lambda);
 		this.e = e;
 		this.p = p;
 	}
@@ -73,17 +106,21 @@ class SLambda : STree {
 class SBLambda : STree {
 	string s;
 	this(string s) {
+		super(SType.BLambda);
 		this.s = s;
 	}
 	override string toString() {
+		return "##"~this.s;
 		return "BaseLambda";
 	}
 }
+
 class SEnv : STree {
 	import std.exception : enforce;
 	STree[string] mp;
 	SEnv next;
 	this(SEnv next) {
+		super(SType.Env);
 		this.next = next;
 	}
 
@@ -105,18 +142,21 @@ class SEnv : STree {
 		enforce(next, s ~ " は未定義");
 		return next.at(s);
 	}
-}
-
-class SNull : STree {
-	override string toString() {
-		return "'()";
+	bool have(string s) {
+		if (get(mp, s, null)) {
+			return true;
+		}
+		if (next is null) return false;
+		return next.have(s);
 	}
 }
 
-unittest {
-	import std.stdio : writeln;
-	STree s = new STree();
-	SNum n = new SNum();
-	STree ss = n;
-	writeln(s, " ", n, " ", ss);
+class SNull : STree {
+	this() {
+		super(SType.Null);
+	}
+	override string toString() {
+		return "()";
+	}
 }
+

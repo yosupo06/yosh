@@ -1,32 +1,45 @@
 import std.stdio, std.exception;
-import base, reader, lambda;
+import base, lambda, syntax;
 
 
 
 SEnv firstEnv() {
 	SEnv env = new SEnv(null);
+	foreach (s; syList) {
+		env.add(s, new SSyntax(s));
+	}
 	foreach (s; blList) {
 		env.add(s, new SBLambda(s));
 	}
+
 	return env;
 }
 
 STree execS(STree s, SEnv env) {
-	if (typeid(s) == typeid(SNull)) {
-		throw new Exception("空リストは評価不可");
-	} else if (typeid(s) == typeid(SNum) || typeid(s) == typeid(SBool)) {
+	with (SType) final switch (s.type) {
+	case BLambda:
+	case Num:
+	case Bool:
 		return s;
-	} else if (typeid(s) == typeid(SSymbol)) {
+	case Symbol:
 		return env.at((cast(SSymbol)s).s);
-	} else if (typeid(s) == typeid(SPair)) {
+	case Pair:
 		auto l = execS((cast(SPair)s).l, env);
-		if (typeid(l) == typeid(SLambda)) {
+		if (l.type == Lambda) {
 			return execL(cast(SLambda)l, (cast(SPair)s).r, env);
-		} else if (typeid(l) == typeid(SBLambda)) {
+		}
+		if (l.type == BLambda) {
 			return execBL(cast(SBLambda)l, (cast(SPair)s).r, env);
 		}
+		if (l.type == Syntax) {
+			return execSy(cast(SSyntax)l, (cast(SPair)s).r, env);
+		}
 		throw new Exception("Pairの左側はLambda / BLambda");
-	} else {
+	case Null:
+		throw new Exception("空リストは評価不可");
+	case Syntax:
+	case Lambda:
+	case Env:
 		throw new Exception("評価不可");
 	}
 }
